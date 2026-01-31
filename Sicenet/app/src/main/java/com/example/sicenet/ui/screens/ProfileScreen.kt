@@ -52,16 +52,14 @@ fun ProfileScreen(
                     CircularProgressIndicator(color = SicenetGreen)
                 }
             } else if (profileXml != null) {
-                // Aquí podrías parsear el XML, por ahora mostramos el crudo o una parte
                 Text(
                     text = "Datos recibidos correctamente.",
                     fontWeight = FontWeight.Bold,
                     modifier = Modifier.padding(bottom = 8.dp)
                 )
-                
-                // Ejemplo de visualización del XML (podrías usar un parser después)
+
                 Card(
-                    colors = CardDefaults.cardColors(containerColor = Color(0xFFF5F5F5)),
+                    colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant),
                     modifier = Modifier.fillMaxWidth()
                 ) {
                     Text(
