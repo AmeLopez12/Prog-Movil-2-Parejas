@@ -5,46 +5,83 @@ import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.*
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
-import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import com.example.sicenet.ui.SicenetViewModel
 import com.example.sicenet.ui.theme.SicenetGreen
-import com.example.sicenet.ui.theme.SicenetTheme
 
 @Composable
 fun ProfileScreen(
+    viewModel: SicenetViewModel,
     modifier: Modifier = Modifier
 ) {
-    Column(
-        modifier = modifier
-            .fillMaxSize()
-            .verticalScroll(rememberScrollState())
-            .padding(16.dp)
-    ) {
-        Text(
-            text = "Perfil Académico",
-            style = MaterialTheme.typography.headlineMedium,
-            color = SicenetGreen,
-            modifier = Modifier.padding(bottom = 16.dp)
-        )
+    LaunchedEffect(Unit) {
+        viewModel.fetchProfile()
+    }
 
-        HorizontalDivider(
-            thickness = 1.dp,
-            color = Color.LightGray,
-            modifier = Modifier.padding(bottom = 16.dp)
-        )
+    val profileXml = viewModel.profileData
 
-        // Datos de ejemplo para el preview
-        ProfileItem(label = "Nombre", value = "América Citlalli López Lemus")
-        ProfileItem(label = "Matrícula", value = "S22120161")
-        ProfileItem(label = "Carrera", value = "Ingeniería en Sistemas Computacionales")
-        ProfileItem(label = "Semestre", value = "8")
-        ProfileItem(label = "Promedio General", value = "9.7")
-        ProfileItem(label = "Estatus", value = "Regular")
-        ProfileItem(label = "Último Periodo", value = "2025-2")
+    Scaffold { paddingValues ->
+        Column(
+            modifier = modifier
+                .fillMaxSize()
+                .padding(paddingValues)
+                .verticalScroll(rememberScrollState())
+                .padding(16.dp)
+        ) {
+            Text(
+                text = "Perfil Académico",
+                style = MaterialTheme.typography.headlineMedium,
+                color = SicenetGreen,
+                modifier = Modifier.padding(bottom = 16.dp)
+            )
+
+            HorizontalDivider(
+                thickness = 1.dp,
+                color = Color.LightGray,
+                modifier = Modifier.padding(bottom = 16.dp)
+            )
+
+            if (viewModel.isLoading) {
+                Box(modifier = Modifier.fillMaxWidth().padding(32.dp), contentAlignment = Alignment.Center) {
+                    CircularProgressIndicator(color = SicenetGreen)
+                }
+            } else if (profileXml != null) {
+                // Aquí podrías parsear el XML, por ahora mostramos el crudo o una parte
+                Text(
+                    text = "Datos recibidos correctamente.",
+                    fontWeight = FontWeight.Bold,
+                    modifier = Modifier.padding(bottom = 8.dp)
+                )
+                
+                // Ejemplo de visualización del XML (podrías usar un parser después)
+                Card(
+                    colors = CardDefaults.cardColors(containerColor = Color(0xFFF5F5F5)),
+                    modifier = Modifier.fillMaxWidth()
+                ) {
+                    Text(
+                        text = profileXml,
+                        modifier = Modifier.padding(8.dp),
+                        fontSize = 12.sp,
+                        lineHeight = 16.sp
+                    )
+                }
+            } else {
+                Text(text = "No se pudieron cargar los datos del perfil.")
+                Button(
+                    onClick = { viewModel.fetchProfile() },
+                    modifier = Modifier.padding(top = 16.dp),
+                    colors = ButtonDefaults.buttonColors(containerColor = SicenetGreen)
+                ) {
+                    Text("Reintentar")
+                }
+            }
+        }
     }
 }
 
@@ -66,13 +103,5 @@ fun ProfileItem(
             text = value,
             fontSize = 16.sp
         )
-    }
-}
-
-@Preview(showBackground = true)
-@Composable
-fun ProfileScreenPreview() {
-    SicenetTheme {
-        ProfileScreen()
     }
 }
