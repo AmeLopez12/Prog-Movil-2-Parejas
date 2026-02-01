@@ -33,8 +33,20 @@ fun LoginScreen(
         }
     }
 
+    // Colores específicos para que se vean bien en modo oscuro (forzando texto negro)
+    val textFieldColors = OutlinedTextFieldDefaults.colors(
+        focusedTextColor = Color.Black,
+        unfocusedTextColor = Color.Black,
+        focusedLabelColor = Color.Black,
+        unfocusedLabelColor = Color.DarkGray,
+        focusedBorderColor = SicenetGreen,
+        unfocusedBorderColor = Color.Gray,
+        cursorColor = SicenetGreen
+    )
+
     Scaffold(
-        snackbarHost = { SnackbarHost(snackbarHostState) }
+        snackbarHost = { SnackbarHost(snackbarHostState) },
+        containerColor = Color.White // Forzar fondo blanco
     ) { paddingValues ->
         Column(
             modifier = modifier
@@ -73,7 +85,8 @@ fun LoginScreen(
                     label = { Text("Ingresa matrícula...") },
                     modifier = Modifier.fillMaxWidth(),
                     singleLine = true,
-                    enabled = !viewModel.isLoading
+                    enabled = !viewModel.isLoading,
+                    colors = textFieldColors
                 )
 
                 Spacer(modifier = Modifier.height(16.dp))
@@ -85,7 +98,8 @@ fun LoginScreen(
                     visualTransformation = PasswordVisualTransformation(),
                     modifier = Modifier.fillMaxWidth(),
                     singleLine = true,
-                    enabled = !viewModel.isLoading
+                    enabled = !viewModel.isLoading,
+                    colors = textFieldColors
                 )
 
                 Spacer(modifier = Modifier.height(32.dp))

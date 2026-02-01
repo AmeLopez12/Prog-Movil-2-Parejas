@@ -6,6 +6,7 @@ import androidx.compose.runtime.setValue
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.ViewModelProvider
 import androidx.lifecycle.viewModelScope
+import com.example.sicenet.data.model.Alumno
 import com.example.sicenet.data.repository.SicenetRepository
 import kotlinx.coroutines.launch
 
@@ -14,7 +15,7 @@ class SicenetViewModel(private val repository: SicenetRepository) : ViewModel() 
     var loginState by mutableStateOf<LoginResult?>(null)
         private set
 
-    var profileData by mutableStateOf<String?>(null)
+    var alumnoData by mutableStateOf<Alumno?>(null)
         private set
 
     var isLoading by mutableStateOf(false)
@@ -38,15 +39,34 @@ class SicenetViewModel(private val repository: SicenetRepository) : ViewModel() 
     fun fetchProfile() {
         viewModelScope.launch {
             isLoading = true
-            profileData = repository.getProfile()
+            val rawXml = repository.getProfile()
+            if (rawXml != null) {
+                val jsonContent = extractJsonFromXml(rawXml)
+                if (jsonContent != null) {
+                    alumnoData = Alumno.fromJson(jsonContent)
+                }
+            }
             isLoading = false
         }
+    }
+
+    private fun extractJsonFromXml(xml: String): String? {
+        val startTag = "<getAlumnoAcademicoWithLineamientoResult>"
+        val endTag = "</getAlumnoAcademicoWithLineamientoResult>"
+        
+        val startIndex = xml.indexOf(startTag)
+        val endIndex = xml.indexOf(endTag)
+        
+        if (startIndex != -1 && endIndex != -1) {
+            return xml.substring(startIndex + startTag.length, endIndex)
+        }
+        return null
     }
 
     fun logout() {
         repository.logout()
         loginState = null
-        profileData = null
+        alumnoData = null
     }
 
     sealed class LoginResult {

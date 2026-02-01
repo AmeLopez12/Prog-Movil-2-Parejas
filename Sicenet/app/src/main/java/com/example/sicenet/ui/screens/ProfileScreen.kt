@@ -1,13 +1,18 @@
 package com.example.sicenet.ui.screens
 
+import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.verticalScroll
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Person
 import androidx.compose.material3.*
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
@@ -18,65 +23,147 @@ import com.example.sicenet.ui.theme.SicenetGreen
 @Composable
 fun ProfileScreen(
     viewModel: SicenetViewModel,
+    onLogout: () -> Unit,
     modifier: Modifier = Modifier
 ) {
     LaunchedEffect(Unit) {
         viewModel.fetchProfile()
     }
 
-    val profileXml = viewModel.profileData
+    val alumno = viewModel.alumnoData
 
-    Scaffold { paddingValues ->
-        Column(
-            modifier = modifier
-                .fillMaxSize()
-                .padding(paddingValues)
-                .verticalScroll(rememberScrollState())
-                .padding(16.dp)
-        ) {
-            Text(
-                text = "Perfil Académico",
-                style = MaterialTheme.typography.headlineMedium,
-                color = SicenetGreen,
-                modifier = Modifier.padding(bottom = 16.dp)
-            )
-
-            HorizontalDivider(
-                thickness = 1.dp,
-                color = Color.LightGray,
-                modifier = Modifier.padding(bottom = 16.dp)
-            )
-
-            if (viewModel.isLoading) {
-                Box(modifier = Modifier.fillMaxWidth().padding(32.dp), contentAlignment = Alignment.Center) {
-                    CircularProgressIndicator(color = SicenetGreen)
-                }
-            } else if (profileXml != null) {
+    Scaffold(
+        containerColor = Color.White,
+        topBar = {
+            Box(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .height(60.dp)
+                    .background(SicenetGreen),
+                contentAlignment = Alignment.CenterStart
+            ) {
                 Text(
-                    text = "Datos recibidos correctamente.",
+                    text = "Perfil Académico",
+                    color = Color.White,
+                    fontSize = 20.sp,
                     fontWeight = FontWeight.Bold,
-                    modifier = Modifier.padding(bottom = 8.dp)
+                    modifier = Modifier.padding(start = 16.dp)
                 )
-
-                Card(
-                    colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant),
-                    modifier = Modifier.fillMaxWidth()
+            }
+        }
+    ) { paddingValues ->
+        if (viewModel.isLoading) {
+            Box(modifier = Modifier.fillMaxSize().background(Color.White), contentAlignment = Alignment.Center) {
+                CircularProgressIndicator(color = SicenetGreen)
+            }
+        } else if (alumno != null) {
+            Column(
+                modifier = modifier
+                    .fillMaxSize()
+                    .padding(paddingValues)
+                    .background(Color.White)
+                    .verticalScroll(rememberScrollState())
+                    .padding(16.dp),
+                horizontalAlignment = Alignment.CenterHorizontally
+            ) {
+                Box(
+                    modifier = Modifier
+                        .size(100.dp)
+                        .clip(CircleShape)
+                        .background(Color.LightGray),
+                    contentAlignment = Alignment.Center
                 ) {
-                    Text(
-                        text = profileXml,
-                        modifier = Modifier.padding(8.dp),
-                        fontSize = 12.sp,
-                        lineHeight = 16.sp
+                    Icon(
+                        imageVector = Icons.Default.Person,
+                        contentDescription = null,
+                        modifier = Modifier.size(60.dp),
+                        tint = Color.Gray
                     )
                 }
-            } else {
-                Text(text = "No se pudieron cargar los datos del perfil.")
+
+                Spacer(modifier = Modifier.height(16.dp))
+
+                Text(
+                    text = alumno.nombre,
+                    fontSize = 20.sp,
+                    fontWeight = FontWeight.Bold,
+                    color = Color.Black
+                )
+                Text(
+                    text = alumno.matricula,
+                    fontSize = 16.sp,
+                    color = Color.Gray
+                )
+
+                Spacer(modifier = Modifier.height(24.dp))
+
+                // Detalles en Cards
+                InfoCard(title = "Carrera", value = alumno.carrera)
+                InfoCard(title = "Especialidad", value = alumno.especialidad)
+                
+                Row(modifier = Modifier.fillMaxWidth()) {
+                    Box(modifier = Modifier.weight(1f)) {
+                        InfoCard(title = "Semestre", value = alumno.semActual.toString())
+                    }
+                    Box(modifier = Modifier.weight(1f)) {
+                        InfoCard(title = "Estatus", value = alumno.estatus)
+                    }
+                }
+
+                Row(modifier = Modifier.fillMaxWidth()) {
+                    Box(modifier = Modifier.weight(1f)) {
+                        InfoCard(title = "Créditos Acum.", value = alumno.cdtosAcumulados.toString())
+                    }
+                    Box(modifier = Modifier.weight(1f)) {
+                        InfoCard(title = "Créditos Act.", value = alumno.cdtosActuales.toString())
+                    }
+                }
+
+                Row(modifier = Modifier.fillMaxWidth()) {
+                    Box(modifier = Modifier.weight(1f)) {
+                        InfoCard(title = "Inscrito", value = if(alumno.inscrito) "SÍ" else "NO")
+                    }
+                    Box(modifier = Modifier.weight(1f)) {
+                        InfoCard(title = "Mod. Educativo", value = alumno.modEducativo.toString())
+                    }
+                }
+
+                if (alumno.adeudo) {
+                    InfoCard(
+                        title = "Adeudo", 
+                        value = alumno.adeudoDescripcion.ifBlank { "Tiene adeudos pendientes" },
+                        color = Color(0xFFFFEBEE),
+                        contentColor = Color.Red
+                    )
+                } else {
+                    InfoCard(title = "Adeudo", value = "Sin adeudos")
+                }
+
+                InfoCard(title = "Fecha Reinscripción", value = alumno.fechaReins)
+                
+                Spacer(modifier = Modifier.height(16.dp))
+                
                 Button(
-                    onClick = { viewModel.fetchProfile() },
-                    modifier = Modifier.padding(top = 16.dp),
-                    colors = ButtonDefaults.buttonColors(containerColor = SicenetGreen)
+                    onClick = { 
+                        viewModel.logout()
+                        onLogout()
+                    },
+                    colors = ButtonDefaults.buttonColors(containerColor = Color.Red),
+                    modifier = Modifier.fillMaxWidth()
                 ) {
-                    Text("Reintentar")
+                    Text("Cerrar Sesión", color = Color.White)
+                }
+            }
+        } else {
+            Box(modifier = Modifier.fillMaxSize().background(Color.White), contentAlignment = Alignment.Center) {
+                Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                    Text(text = "No se pudieron cargar los datos.", color = Color.Black)
+                    Button(
+                        onClick = { viewModel.fetchProfile() },
+                        colors = ButtonDefaults.buttonColors(containerColor = SicenetGreen)
+                    ) {
+                        Text("Reintentar")
+                    }
                 }
             }
         }
@@ -84,22 +171,22 @@ fun ProfileScreen(
 }
 
 @Composable
-fun ProfileItem(
-    label: String,
-    value: String,
-    modifier: Modifier = Modifier
+fun InfoCard(
+    title: String, 
+    value: String, 
+    color: Color = Color(0xFFF8F9FA),
+    contentColor: Color = Color.Black
 ) {
-    Column(modifier = modifier.padding(vertical = 8.dp)) {
-        Text(
-            text = label,
-            fontWeight = FontWeight.Bold,
-            fontSize = 14.sp,
-            color = Color.Gray
-        )
-        Spacer(modifier = Modifier.height(4.dp))
-        Text(
-            text = value,
-            fontSize = 16.sp
-        )
+    Card(
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(vertical = 4.dp, horizontal = 4.dp),
+        colors = CardDefaults.cardColors(containerColor = color),
+        elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
+    ) {
+        Column(modifier = Modifier.padding(12.dp)) {
+            Text(text = title, fontSize = 12.sp, color = Color.Gray, fontWeight = FontWeight.Bold)
+            Text(text = value, fontSize = 15.sp, color = contentColor)
+        }
     }
 }

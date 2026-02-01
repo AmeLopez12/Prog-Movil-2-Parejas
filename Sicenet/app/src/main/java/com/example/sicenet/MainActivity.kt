@@ -23,7 +23,6 @@ class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         
-        // Inicialización simple de dependencias
         val apiService = SicenetApiService.create()
         val repository = SicenetRepository(apiService)
         
@@ -62,7 +61,14 @@ fun AppNavigation(viewModel: SicenetViewModel) {
             )
         }
         composable("profile") {
-            ProfileScreen(viewModel = viewModel)
+            ProfileScreen(
+                viewModel = viewModel,
+                onLogout = {
+                    navController.navigate("login") {
+                        popUpTo("profile") { inclusive = true }
+                    }
+                }
+            )
         }
     }
 }
