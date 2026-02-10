@@ -25,7 +25,6 @@ fun LoginScreen(
     var contrasenia by remember { mutableStateOf("") }
     val snackbarHostState = remember { SnackbarHostState() }
 
-    // Manejo de errores del login
     val loginState = viewModel.loginState
     LaunchedEffect(loginState) {
         if (loginState is SicenetViewModel.LoginResult.Error) {
@@ -33,7 +32,6 @@ fun LoginScreen(
         }
     }
 
-    // Colores específicos para que se vean bien en modo oscuro (forzando texto negro)
     val textFieldColors = OutlinedTextFieldDefaults.colors(
         focusedTextColor = Color.Black,
         unfocusedTextColor = Color.Black,
@@ -45,22 +43,15 @@ fun LoginScreen(
     )
 
     Scaffold(
-        snackbarHost = { SnackbarHost(snackbarHostState) },
-        containerColor = Color.White // Forzar fondo blanco
-    ) { paddingValues ->
-        Column(
-            modifier = modifier
-                .fillMaxSize()
-                .padding(paddingValues)
-                .background(Color.White),
-            horizontalAlignment = Alignment.CenterHorizontally
-        ) {
+        containerColor = Color.White,
+        topBar = {
             // Encabezado Verde
             Box(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .height(80.dp)
-                    .background(SicenetGreen),
+                    .background(SicenetGreen)
+                    .windowInsetsPadding(WindowInsets.statusBars)
+                    .height(70.dp),
                 contentAlignment = Alignment.CenterStart
             ) {
                 Text(
@@ -71,9 +62,15 @@ fun LoginScreen(
                     modifier = Modifier.padding(start = 16.dp)
                 )
             }
-
-            Spacer(modifier = Modifier.height(60.dp))
-
+        }
+    ) { paddingValues ->
+        Column(
+            modifier = modifier
+                .fillMaxSize()
+                .padding(paddingValues)
+                .background(Color.White),
+            horizontalAlignment = Alignment.CenterHorizontally
+        ) {
             // Formulario
             Column(
                 modifier = Modifier.padding(horizontal = 32.dp),

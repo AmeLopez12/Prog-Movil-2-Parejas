@@ -7,10 +7,10 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.ViewModelProvider
 import androidx.lifecycle.viewModelScope
 import com.example.sicenet.data.model.Alumno
-import com.example.sicenet.data.repository.SicenetRepository
+import com.example.sicenet.data.repository.ISicenetRepository
 import kotlinx.coroutines.launch
 
-class SicenetViewModel(private val repository: SicenetRepository) : ViewModel() {
+class SicenetViewModel(private val repository: ISicenetRepository) : ViewModel() {
 
     var loginState by mutableStateOf<LoginResult?>(null)
         private set
@@ -26,12 +26,17 @@ class SicenetViewModel(private val repository: SicenetRepository) : ViewModel() 
             isLoading = true
             val result = repository.login(matricula, contrasenia)
             isLoading = false
-            
-            if (result.isSuccess) {
-                loginState = LoginResult.Success
-                onSuccess()
-            } else {
-                loginState = LoginResult.Error(result.exceptionOrNull()?.message ?: "Error desconocido")
+
+            //que login sea true
+            result.onSuccess { loginObj ->
+                if (loginObj.acceso) {
+                    loginState = LoginResult.Success
+                    onSuccess()
+                } else {
+                    loginState = LoginResult.Error(loginObj.mensaje)
+                }
+            }.onFailure { error ->
+                loginState = LoginResult.Error(error.message ?: "Error desconocido")
             }
         }
     }
@@ -39,28 +44,16 @@ class SicenetViewModel(private val repository: SicenetRepository) : ViewModel() 
     fun fetchProfile() {
         viewModelScope.launch {
             isLoading = true
-            val rawXml = repository.getProfile()
-            if (rawXml != null) {
-                val jsonContent = extractJsonFromXml(rawXml)
-                if (jsonContent != null) {
-                    alumnoData = Alumno.fromJson(jsonContent)
-                }
+            val result = repository.getProfile()
+
+            result.onSuccess { alumno ->
+                alumnoData = alumno
+            }.onFailure {
+                alumnoData = null
             }
+
             isLoading = false
         }
-    }
-
-    private fun extractJsonFromXml(xml: String): String? {
-        val startTag = "<getAlumnoAcademicoWithLineamientoResult>"
-        val endTag = "</getAlumnoAcademicoWithLineamientoResult>"
-        
-        val startIndex = xml.indexOf(startTag)
-        val endIndex = xml.indexOf(endTag)
-        
-        if (startIndex != -1 && endIndex != -1) {
-            return xml.substring(startIndex + startTag.length, endIndex)
-        }
-        return null
     }
 
     fun logout() {
@@ -75,7 +68,7 @@ class SicenetViewModel(private val repository: SicenetRepository) : ViewModel() 
     }
 
     companion object {
-        fun provideFactory(repository: SicenetRepository): ViewModelProvider.Factory = object : ViewModelProvider.Factory {
+        fun provideFactory(repository: ISicenetRepository): ViewModelProvider.Factory = object : ViewModelProvider.Factory {
             @Suppress("UNCHECKED_CAST")
             override fun <T : androidx.lifecycle.ViewModel> create(modelClass: Class<T>): T {
                 return SicenetViewModel(repository) as T

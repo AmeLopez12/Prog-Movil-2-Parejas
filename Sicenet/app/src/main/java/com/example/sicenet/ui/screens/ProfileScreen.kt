@@ -38,16 +38,17 @@ fun ProfileScreen(
             Box(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .height(60.dp)
-                    .background(SicenetGreen),
+                    .background(SicenetGreen)
+                    .windowInsetsPadding(WindowInsets.statusBars)
+                    .height(70.dp),
                 contentAlignment = Alignment.CenterStart
             ) {
                 Text(
                     text = "Perfil Académico",
                     color = Color.White,
-                    fontSize = 20.sp,
+                    fontSize = 25.sp,
                     fontWeight = FontWeight.Bold,
-                    modifier = Modifier.padding(start = 16.dp)
+                    modifier = Modifier.padding(start = 16.dp),
                 )
             }
         }

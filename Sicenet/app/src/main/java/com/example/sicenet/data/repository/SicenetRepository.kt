@@ -1,22 +1,23 @@
 package com.example.sicenet.data.repository
 
 import android.util.Log
+import com.example.sicenet.data.model.Alumno
+import com.example.sicenet.data.model.Login
 import com.example.sicenet.data.network.SicenetApiService
 import okhttp3.MediaType.Companion.toMediaType
 import okhttp3.RequestBody.Companion.toRequestBody
+import org.json.JSONObject
 
-class SicenetRepository(private val apiService: SicenetApiService) {
+class SicenetRepository(private val apiService: SicenetApiService) : ISicenetRepository {
 
     private var sessionCookie: String? = null
     private val xmlMediaType = "text/xml; charset=utf-8".toMediaType()
 
-    suspend fun login(matricula: String, contrasenia: String): Result<Boolean> {
+    override suspend fun login(matricula: String, contrasenia: String): Result<Login> {
         return try {
             val cleanMatricula = matricula.trim()
             val cleanPassword = contrasenia.trim()
-            
-            Log.d("SICENET", "Intentando login para: $cleanMatricula")
-            
+
             val soapBody = """
                 <?xml version="1.0" encoding="utf-8"?>
                 <soap:Envelope xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns:xsd="http://www.w3.org/2001/XMLSchema" xmlns:soap="http://schemas.xmlsoap.org/soap/envelope/">
@@ -35,31 +36,31 @@ class SicenetRepository(private val apiService: SicenetApiService) {
 
             if (response.isSuccessful) {
                 val bodyString = response.body()?.string() ?: ""
-                Log.d("SICENET", "Respuesta del servidor: $bodyString")
 
-                if (bodyString.contains("\"acceso\":true")) {
+                val jsonMatch = Regex("<accesoLoginResult>(.*?)</accesoLoginResult>").find(bodyString)
+                val jsonContent = jsonMatch?.groups?.get(1)?.value ?: ""
+
+                val jsonObject = JSONObject(jsonContent)
+                val isSuccess = jsonObject.optBoolean("acceso", false)
+
+                if (isSuccess) {
                     val cookieHeader = response.headers()["Set-Cookie"]
                     sessionCookie = cookieHeader?.split(";")?.firstOrNull()
-                    Log.d("SICENET", "¡Acceso concedido! Cookie guardada: $sessionCookie")
-                    Result.success(true)
-                } else if (bodyString.contains("<html>")) {
-                    Log.e("SICENET", "Error: El servidor respondió con HTML. Posible problema de SOAPAction.")
-                    Result.failure(Exception("Error de comunicación con el servidor"))
+
+                    Result.success(Login(true, "Acceso concedido", sessionCookie))
                 } else {
-                    Log.w("SICENET", "Acceso denegado: Credenciales incorrectas.")
-                    Result.failure(Exception("Matrícula o contraseña incorrecta"))
+                    Result.success(Login(false, "Matrícula o contraseña incorrecta"))
                 }
             } else {
-                Log.e("SICENET", "Error HTTP: ${response.code()}")
                 Result.failure(Exception("Error en el servidor: ${response.code()}"))
             }
         } catch (e: Exception) {
-            Log.e("SICENET", "Error de red", e)
+            Log.e("SICENET", "Error de red en login", e)
             Result.failure(e)
         }
     }
 
-    suspend fun getProfile(): String? {
+    override suspend fun getProfile(): Result<Alumno> {
         val soapBody = """
             <?xml version="1.0" encoding="utf-8"?>
             <soap:Envelope xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns:xsd="http://www.w3.org/2001/XMLSchema" xmlns:soap="http://schemas.xmlsoap.org/soap/envelope/">
@@ -75,17 +76,30 @@ class SicenetRepository(private val apiService: SicenetApiService) {
                 cookie = sessionCookie,
                 soap = soapBody.toRequestBody(xmlMediaType)
             )
+
             if (response.isSuccessful) {
-                response.body()?.string()
+                val xmlResponse = response.body()?.string() ?: ""
+
+                val jsonMatch = Regex("<getAlumnoAcademicoWithLineamientoResult>(.*?)</getAlumnoAcademicoWithLineamientoResult>")
+                    .find(xmlResponse)
+                val jsonContent = jsonMatch?.groups?.get(1)?.value
+
+                if (jsonContent != null) {
+                    val alumno = Alumno.fromJson(jsonContent)
+                    Result.success(alumno)
+                } else {
+                    Result.failure(Exception("No se encontró el perfil en la respuesta"))
+                }
             } else {
-                null
+                Result.failure(Exception("Error HTTP: ${response.code()}"))
             }
         } catch (e: Exception) {
-            null
+            Log.e("SICENET", "Error al obtener perfil", e)
+            Result.failure(e)
         }
     }
 
-    fun logout() {
+    override fun logout() {
         sessionCookie = null
     }
 }
