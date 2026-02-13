@@ -26,6 +26,38 @@ interface SicenetApiService {
         @Body soap: RequestBody
     ): Response<ResponseBody>
 
+    @Headers("Content-Type: text/xml; charset=utf-8")
+    @POST("ws/wsalumnos.asmx")
+    suspend fun getCargaAcademica(
+        @Header("SOAPAction") soapAction: String = "\"http://tempuri.org/getCargaAcademicaByAlumno\"",
+        @Header("Cookie") cookie: String?,
+        @Body soap: RequestBody
+    ): Response<ResponseBody>
+
+    @Headers("Content-Type: text/xml; charset=utf-8")
+    @POST("ws/wsalumnos.asmx")
+    suspend fun getKardex(
+        @Header("SOAPAction") soapAction: String = "\"http://tempuri.org/getAllKardexConPromedioByAlumno\"",
+        @Header("Cookie") cookie: String?,
+        @Body soap: RequestBody
+    ): Response<ResponseBody>
+
+    @Headers("Content-Type: text/xml; charset=utf-8")
+    @POST("ws/wsalumnos.asmx")
+    suspend fun getCalifUnidades(
+        @Header("SOAPAction") soapAction: String = "\"http://tempuri.org/getCalifUnidadesByAlumno\"",
+        @Header("Cookie") cookie: String?,
+        @Body soap: RequestBody
+    ): Response<ResponseBody>
+
+    @Headers("Content-Type: text/xml; charset=utf-8")
+    @POST("ws/wsalumnos.asmx")
+    suspend fun getCalifFinal(
+        @Header("SOAPAction") soapAction: String = "\"http://tempuri.org/getAllCalifFinalByAlumnos\"",
+        @Header("Cookie") cookie: String?,
+        @Body soap: RequestBody
+    ): Response<ResponseBody>
+
     companion object {
         private const val BASE_URL = "https://sicenet.surguanajuato.tecnm.mx/"
 

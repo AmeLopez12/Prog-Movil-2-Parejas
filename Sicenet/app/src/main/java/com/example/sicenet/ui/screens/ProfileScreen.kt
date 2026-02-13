@@ -9,7 +9,8 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Person
 import androidx.compose.material3.*
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.collectAsState
+import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -26,11 +27,7 @@ fun ProfileScreen(
     onLogout: () -> Unit,
     modifier: Modifier = Modifier
 ) {
-    LaunchedEffect(Unit) {
-        viewModel.fetchProfile()
-    }
-
-    val alumno = viewModel.alumnoData
+    val alumno by viewModel.alumnoLocal.collectAsState()
 
     Scaffold(
         containerColor = Color.White,
@@ -58,6 +55,7 @@ fun ProfileScreen(
                 CircularProgressIndicator(color = SicenetGreen)
             }
         } else if (alumno != null) {
+            val a = alumno!!
             Column(
                 modifier = modifier
                     .fillMaxSize()
@@ -85,13 +83,13 @@ fun ProfileScreen(
                 Spacer(modifier = Modifier.height(16.dp))
 
                 Text(
-                    text = alumno.nombre,
+                    text = a.nombre,
                     fontSize = 20.sp,
                     fontWeight = FontWeight.Bold,
                     color = Color.Black
                 )
                 Text(
-                    text = alumno.matricula,
+                    text = a.matricula,
                     fontSize = 16.sp,
                     color = Color.Gray
                 )
@@ -99,40 +97,40 @@ fun ProfileScreen(
                 Spacer(modifier = Modifier.height(24.dp))
 
                 // Detalles en Cards
-                InfoCard(title = "Carrera", value = alumno.carrera)
-                InfoCard(title = "Especialidad", value = alumno.especialidad)
+                InfoCard(title = "Carrera", value = a.carrera)
+                InfoCard(title = "Especialidad", value = a.especialidad)
                 
                 Row(modifier = Modifier.fillMaxWidth()) {
                     Box(modifier = Modifier.weight(1f)) {
-                        InfoCard(title = "Semestre", value = alumno.semActual.toString())
+                        InfoCard(title = "Semestre", value = a.semActual.toString())
                     }
                     Box(modifier = Modifier.weight(1f)) {
-                        InfoCard(title = "Estatus", value = alumno.estatus)
+                        InfoCard(title = "Estatus", value = a.estatus)
                     }
                 }
 
                 Row(modifier = Modifier.fillMaxWidth()) {
                     Box(modifier = Modifier.weight(1f)) {
-                        InfoCard(title = "Créditos Acum.", value = alumno.cdtosAcumulados.toString())
+                        InfoCard(title = "Créditos Acum.", value = a.cdtosAcumulados.toString())
                     }
                     Box(modifier = Modifier.weight(1f)) {
-                        InfoCard(title = "Créditos Act.", value = alumno.cdtosActuales.toString())
+                        InfoCard(title = "Créditos Act.", value = a.cdtosActuales.toString())
                     }
                 }
 
                 Row(modifier = Modifier.fillMaxWidth()) {
                     Box(modifier = Modifier.weight(1f)) {
-                        InfoCard(title = "Inscrito", value = if(alumno.inscrito) "SÍ" else "NO")
+                        InfoCard(title = "Inscrito", value = if(a.inscrito) "SÍ" else "NO")
                     }
                     Box(modifier = Modifier.weight(1f)) {
-                        InfoCard(title = "Mod. Educativo", value = alumno.modEducativo.toString())
+                        InfoCard(title = "Mod. Educativo", value = a.modEducativo.toString())
                     }
                 }
 
-                if (alumno.adeudo) {
+                if (a.adeudo) {
                     InfoCard(
                         title = "Adeudo", 
-                        value = alumno.adeudoDescripcion.ifBlank { "Tiene adeudos pendientes" },
+                        value = a.adeudoDescripcion.ifBlank { "Tiene adeudos pendientes" },
                         color = Color(0xFFFFEBEE),
                         contentColor = Color.Red
                     )
@@ -140,7 +138,7 @@ fun ProfileScreen(
                     InfoCard(title = "Adeudo", value = "Sin adeudos")
                 }
 
-                InfoCard(title = "Fecha Reinscripción", value = alumno.fechaReins)
+                InfoCard(title = "Fecha Reinscripción", value = a.fechaReins)
                 
                 Spacer(modifier = Modifier.height(16.dp))
                 
@@ -160,7 +158,7 @@ fun ProfileScreen(
                 Column(horizontalAlignment = Alignment.CenterHorizontally) {
                     Text(text = "No se pudieron cargar los datos.", color = Color.Black)
                     Button(
-                        onClick = { viewModel.fetchProfile() },
+                        onClick = { /* El perfil se sincroniza al entrar, pero podríamos reintentar */ },
                         colors = ButtonDefaults.buttonColors(containerColor = SicenetGreen)
                     ) {
                         Text("Reintentar")

@@ -1,10 +1,13 @@
 package com.example.sicenet.data.model
 
+import androidx.room.Entity
+import androidx.room.PrimaryKey
 import org.json.JSONObject
 
+@Entity(tableName = "alumno_perfil")
 data class Alumno(
+    @PrimaryKey val matricula: String = "",
     val nombre: String = "",
-    val matricula: String = "",
     val carrera: String = "",
     val especialidad: String = "",
     val semActual: Int = 0,
@@ -18,7 +21,8 @@ data class Alumno(
     val adeudoDescripcion: String = "",
     val urlFoto: String = "",
     val lineamiento: Int = 0,
-    val promedioGeneral: String = "N/A"
+    val promedioGeneral: String = "N/A",
+    val lastUpdate: Long = System.currentTimeMillis()
 ) {
     companion object {
         fun fromJson(jsonString: String): Alumno {
