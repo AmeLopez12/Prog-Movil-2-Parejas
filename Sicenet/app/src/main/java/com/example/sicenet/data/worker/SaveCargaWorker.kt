@@ -20,7 +20,14 @@ class SaveCargaWorker(
         
         val apiService = SicenetApiService.create()
         val db = SicenetDatabase.getDatabase(applicationContext)
-        val repository = SicenetRepository(apiService, db.alumnoDao(), db.materiaDao())
+        val repository = SicenetRepository(
+            apiService, 
+            db.alumnoDao(), 
+            db.materiaDao(), 
+            db.kardexDao(),
+            db.califUnidadDao(),
+            db.califFinalDao()
+        )
 
         return try {
             val type = object : TypeToken<List<Materia>>() {}.type

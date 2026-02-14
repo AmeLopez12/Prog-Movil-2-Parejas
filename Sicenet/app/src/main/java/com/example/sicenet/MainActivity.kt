@@ -3,16 +3,17 @@ package com.example.sicenet
 import android.os.Bundle
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.padding
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.Home
-import androidx.compose.material.icons.filled.List
-import androidx.compose.material.icons.filled.Person
+import androidx.compose.material.icons.filled.*
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.unit.sp
 import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.NavDestination.Companion.hierarchy
 import androidx.navigation.NavGraph.Companion.findStartDestination
@@ -24,9 +25,7 @@ import com.example.sicenet.data.local.SicenetDatabase
 import com.example.sicenet.data.network.SicenetApiService
 import com.example.sicenet.data.repository.SicenetRepository
 import com.example.sicenet.ui.SicenetViewModel
-import com.example.sicenet.ui.screens.CargaScreen
-import com.example.sicenet.ui.screens.LoginScreen
-import com.example.sicenet.ui.screens.ProfileScreen
+import com.example.sicenet.ui.screens.*
 import com.example.sicenet.ui.theme.SicenetGreen
 import com.example.sicenet.ui.theme.SicenetTheme
 
@@ -36,7 +35,14 @@ class MainActivity : ComponentActivity() {
         
         val apiService = SicenetApiService.create()
         val db = SicenetDatabase.getDatabase(this)
-        val repository = SicenetRepository(apiService, db.alumnoDao(), db.materiaDao())
+        val repository = SicenetRepository(
+            apiService, 
+            db.alumnoDao(), 
+            db.materiaDao(), 
+            db.kardexDao(),
+            db.califUnidadDao(),
+            db.califFinalDao()
+        )
         
         setContent {
             SicenetTheme {
@@ -51,7 +57,10 @@ class MainActivity : ComponentActivity() {
 
 sealed class Screen(val route: String, val label: String, val icon: ImageVector) {
     object Profile : Screen("profile", "Perfil", Icons.Default.Person)
-    object Carga : Screen("carga", "Carga", Icons.Default.List)
+    object Carga : Screen("carga", "Carga", Icons.Default.DateRange)
+    object Kardex : Screen("kardex", "Kardex", Icons.Default.Info)
+    object CalifUnidades : Screen("calif_unidades", "Unidades", Icons.Default.Star)
+    object CalifFinal : Screen("calif_final", "Final", Icons.Default.CheckCircle)
 }
 
 @Composable
@@ -66,11 +75,17 @@ fun AppMain(viewModel: SicenetViewModel) {
         bottomBar = {
             if (showBottomBar) {
                 NavigationBar(containerColor = MaterialTheme.colorScheme.surface) {
-                    val items = listOf(Screen.Profile, Screen.Carga)
+                    val items = listOf(
+                        Screen.Profile,
+                        Screen.Carga,
+                        Screen.Kardex,
+                        Screen.CalifUnidades,
+                        Screen.CalifFinal
+                    )
                     items.forEach { screen ->
                         NavigationBarItem(
                             icon = { Icon(screen.icon, contentDescription = null) },
-                            label = { Text(screen.label) },
+                            label = { Text(screen.label, fontSize = 10.sp) },
                             selected = currentDestination?.hierarchy?.any { it.route == screen.route } == true,
                             onClick = {
                                 navController.navigate(screen.route) {
@@ -119,6 +134,15 @@ fun AppMain(viewModel: SicenetViewModel) {
             }
             composable(Screen.Carga.route) {
                 CargaScreen(viewModel = viewModel)
+            }
+            composable(Screen.Kardex.route) {
+                KardexScreen(viewModel = viewModel)
+            }
+            composable(Screen.CalifUnidades.route) {
+                CalifUnidadesScreen(viewModel = viewModel)
+            }
+            composable(Screen.CalifFinal.route) {
+                CalifFinalScreen(viewModel = viewModel)
             }
         }
     }

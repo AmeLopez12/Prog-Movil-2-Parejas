@@ -4,13 +4,19 @@ import android.content.Context
 import androidx.room.Database
 import androidx.room.Room
 import androidx.room.RoomDatabase
-import com.example.sicenet.data.model.Alumno
-import com.example.sicenet.data.model.Materia
+import com.example.sicenet.data.model.*
 
-@Database(entities = [Alumno::class, Materia::class], version = 1, exportSchema = false)
+@Database(
+    entities = [Alumno::class, Materia::class, Kardex::class, CalifUnidad::class, CalifFinal::class], 
+    version = 4, 
+    exportSchema = false
+)
 abstract class SicenetDatabase : RoomDatabase() {
     abstract fun alumnoDao(): AlumnoDao
     abstract fun materiaDao(): MateriaDao
+    abstract fun kardexDao(): KardexDao
+    abstract fun califUnidadDao(): CalifUnidadDao
+    abstract fun califFinalDao(): CalifFinalDao
 
     companion object {
         @Volatile
@@ -22,7 +28,9 @@ abstract class SicenetDatabase : RoomDatabase() {
                     context.applicationContext,
                     SicenetDatabase::class.java,
                     "sicenet_database"
-                ).build()
+                )
+                .fallbackToDestructiveMigration()
+                .build()
                 INSTANCE = instance
                 instance
             }

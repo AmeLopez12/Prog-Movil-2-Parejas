@@ -10,14 +10,16 @@ import com.example.sicenet.data.network.SicenetApiService
 import com.example.sicenet.data.repository.SicenetRepository
 import com.google.gson.Gson
 
-class FetchCargaWorker(
+class FetchCalifFinalWorker(
     appContext: Context,
     workerParams: WorkerParameters
 ) : CoroutineWorker(appContext, workerParams) {
 
     override suspend fun doWork(): Result {
         val cookie = inputData.getString("session_cookie")
-        Log.d("SICENET_WORKER", "Iniciando FetchCargaWorker con cookie: $cookie")
+        val modEducativo = inputData.getInt("modEducativo", 1)
+        
+        Log.d("SICENET_WORKER", "Iniciando FetchCalifFinalWorker")
 
         val apiService = SicenetApiService.create()
         val db = SicenetDatabase.getDatabase(applicationContext)
@@ -32,18 +34,14 @@ class FetchCargaWorker(
         
         repository.setSessionCookie(cookie)
 
-        val result = repository.getCargaAcademicaRemote(cookie)
+        val result = repository.getCalifFinalRemote(cookie, modEducativo)
 
         return if (result.isSuccess) {
-            val materias = result.getOrNull()
-            Log.d("SICENET_WORKER", "Fetch exitoso. Materias obtenidas: ${materias?.size}")
-            
-            val jsonCarga = Gson().toJson(materias)
-            val outputData = workDataOf("carga_json" to jsonCarga)
+            val json = Gson().toJson(result.getOrNull())
+            val outputData = workDataOf("calif_final_json" to json)
             Result.success(outputData)
         } else {
-            val error = result.exceptionOrNull()?.message
-            Log.e("SICENET_WORKER", "Error en FetchCargaWorker: $error")
+            Log.e("SICENET_WORKER", "Error en FetchCalifFinalWorker: ${result.exceptionOrNull()?.message}")
             Result.failure()
         }
     }
