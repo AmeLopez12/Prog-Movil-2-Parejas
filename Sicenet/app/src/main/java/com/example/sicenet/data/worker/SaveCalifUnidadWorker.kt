@@ -21,6 +21,7 @@ class SaveCalifUnidadWorker(
         val apiService = SicenetApiService.create()
         val db = SicenetDatabase.getDatabase(applicationContext)
         val repository = SicenetRepository(
+            applicationContext,
             apiService, 
             db.alumnoDao(), 
             db.materiaDao(), 
@@ -31,8 +32,8 @@ class SaveCalifUnidadWorker(
 
         return try {
             val type = object : TypeToken<List<CalifUnidad>>() {}.type
-            val list: List<CalifUnidad> = Gson().fromJson(json, type)
-            repository.saveCalifUnidadesLocal(list)
+            val data: List<CalifUnidad> = Gson().fromJson(json, type)
+            repository.saveCalifUnidadesLocal(data)
             Result.success()
         } catch (e: Exception) {
             Result.failure()

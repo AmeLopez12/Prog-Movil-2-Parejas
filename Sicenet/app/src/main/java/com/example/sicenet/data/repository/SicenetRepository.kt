@@ -1,5 +1,6 @@
 package com.example.sicenet.data.repository
 
+import android.content.Context
 import android.util.Log
 import com.example.sicenet.data.local.*
 import com.example.sicenet.data.model.*
@@ -10,6 +11,7 @@ import okhttp3.RequestBody.Companion.toRequestBody
 import org.json.JSONObject
 
 class SicenetRepository(
+    context: Context,
     private val apiService: SicenetApiService,
     private val alumnoDao: AlumnoDao,
     private val materiaDao: MateriaDao,
@@ -18,12 +20,13 @@ class SicenetRepository(
     private val califFinalDao: CalifFinalDao
 ) : ISicenetRepository {
 
-    private var sessionCookie: String? = null
+    private val prefs = context.getSharedPreferences("sicenet_prefs", Context.MODE_PRIVATE)
     private val xmlMediaType = "text/xml; charset=utf-8".toMediaType()
 
-    override fun getSessionCookie(): String? = sessionCookie
+    override fun getSessionCookie(): String? = prefs.getString("session_cookie", null)
+    
     override fun setSessionCookie(cookie: String?) {
-        sessionCookie = cookie
+        prefs.edit().putString("session_cookie", cookie).apply()
     }
 
     override suspend fun login(matricula: String, contrasenia: String): Result<Login> {
@@ -57,8 +60,9 @@ class SicenetRepository(
 
                 if (isSuccess) {
                     val cookieHeader = response.headers()["Set-Cookie"]
-                    sessionCookie = cookieHeader?.split(";")?.firstOrNull()
-                    Result.success(Login(true, "Acceso concedido", sessionCookie))
+                    val cookie = cookieHeader?.split(";")?.firstOrNull()
+                    setSessionCookie(cookie)
+                    Result.success(Login(true, "Acceso concedido", cookie))
                 } else {
                     Result.success(Login(false, "Matrícula o contraseña incorrecta"))
                 }
@@ -71,7 +75,7 @@ class SicenetRepository(
     }
 
     override suspend fun getProfileRemote(cookie: String?): Result<Alumno> {
-        val effectiveCookie = cookie ?: sessionCookie
+        val effectiveCookie = cookie ?: getSessionCookie()
         val soapBody = """
             <?xml version="1.0" encoding="utf-8"?>
             <soap:Envelope xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns:xsd="http://www.w3.org/2001/XMLSchema" xmlns:soap="http://schemas.xmlsoap.org/soap/envelope/">
@@ -108,7 +112,7 @@ class SicenetRepository(
     }
 
     override suspend fun getCargaAcademicaRemote(cookie: String?): Result<List<Materia>> {
-        val effectiveCookie = cookie ?: sessionCookie
+        val effectiveCookie = cookie ?: getSessionCookie()
         val soapBody = """
             <?xml version="1.0" encoding="utf-8"?>
             <soap:Envelope xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns:xsd="http://www.w3.org/2001/XMLSchema" xmlns:soap="http://schemas.xmlsoap.org/soap/envelope/">
@@ -124,7 +128,6 @@ class SicenetRepository(
                 val xmlResponse = response.body()?.string() ?: ""
                 val jsonMatch = Regex("<getCargaAcademicaByAlumnoResult>(.*?)</getCargaAcademicaByAlumnoResult>", RegexOption.DOT_MATCHES_ALL).find(xmlResponse)
                 val jsonContent = jsonMatch?.groups?.get(1)?.value
-                
                 if (!jsonContent.isNullOrBlank() && jsonContent != "[]") {
                     Result.success(Materia.fromJsonList(jsonContent))
                 } else {
@@ -139,7 +142,7 @@ class SicenetRepository(
     }
 
     override suspend fun getKardexRemote(cookie: String?, lineamiento: Int): Result<List<Kardex>> {
-        val effectiveCookie = cookie ?: sessionCookie
+        val effectiveCookie = cookie ?: getSessionCookie()
         val soapBody = """
             <?xml version="1.0" encoding="utf-8"?>
             <soap:Envelope xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns:xsd="http://www.w3.org/2001/XMLSchema" xmlns:soap="http://schemas.xmlsoap.org/soap/envelope/">
@@ -171,7 +174,7 @@ class SicenetRepository(
     }
 
     override suspend fun getCalifUnidadesRemote(cookie: String?): Result<List<CalifUnidad>> {
-        val effectiveCookie = cookie ?: sessionCookie
+        val effectiveCookie = cookie ?: getSessionCookie()
         val soapBody = """
             <?xml version="1.0" encoding="utf-8"?>
             <soap:Envelope xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns:xsd="http://www.w3.org/2001/XMLSchema" xmlns:soap="http://schemas.xmlsoap.org/soap/envelope/">
@@ -201,7 +204,7 @@ class SicenetRepository(
     }
 
     override suspend fun getCalifFinalRemote(cookie: String?, modEducativo: Int): Result<List<CalifFinal>> {
-        val effectiveCookie = cookie ?: sessionCookie
+        val effectiveCookie = cookie ?: getSessionCookie()
         val soapBody = """
             <?xml version="1.0" encoding="utf-8"?>
             <soap:Envelope xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns:xsd="http://www.w3.org/2001/XMLSchema" xmlns:soap="http://schemas.xmlsoap.org/soap/envelope/">
@@ -232,7 +235,6 @@ class SicenetRepository(
         }
     }
 
-    // Local methods
     override fun getAlumnoLocal(): Flow<Alumno?> = alumnoDao.getAlumno()
     override suspend fun saveAlumnoLocal(alumno: Alumno) = alumnoDao.insertAlumno(alumno)
 
@@ -265,6 +267,7 @@ class SicenetRepository(
     override suspend fun getLastCalifFinalUpdate(): Long? = califFinalDao.getLastUpdateTime()
 
     override fun logout() {
-        sessionCookie = null
+        setSessionCookie(null)
+        // Opcional: borrar DB al cerrar sesión
     }
 }

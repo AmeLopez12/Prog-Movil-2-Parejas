@@ -17,11 +17,12 @@ class FetchCargaWorker(
 
     override suspend fun doWork(): Result {
         val cookie = inputData.getString("session_cookie")
-        Log.d("SICENET_WORKER", "Iniciando FetchCargaWorker con cookie: $cookie")
+        Log.d("SICENET_WORKER", "Iniciando FetchCargaWorker")
 
         val apiService = SicenetApiService.create()
         val db = SicenetDatabase.getDatabase(applicationContext)
         val repository = SicenetRepository(
+            applicationContext,
             apiService, 
             db.alumnoDao(), 
             db.materiaDao(), 
@@ -35,15 +36,11 @@ class FetchCargaWorker(
         val result = repository.getCargaAcademicaRemote(cookie)
 
         return if (result.isSuccess) {
-            val materias = result.getOrNull()
-            Log.d("SICENET_WORKER", "Fetch exitoso. Materias obtenidas: ${materias?.size}")
-            
-            val jsonCarga = Gson().toJson(materias)
-            val outputData = workDataOf("carga_json" to jsonCarga)
+            val json = Gson().toJson(result.getOrNull())
+            val outputData = workDataOf("carga_json" to json)
             Result.success(outputData)
         } else {
-            val error = result.exceptionOrNull()?.message
-            Log.e("SICENET_WORKER", "Error en FetchCargaWorker: $error")
+            Log.e("SICENET_WORKER", "Error en FetchCargaWorker: ${result.exceptionOrNull()?.message}")
             Result.failure()
         }
     }

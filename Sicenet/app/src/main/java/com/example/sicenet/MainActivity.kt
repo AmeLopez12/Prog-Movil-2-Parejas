@@ -3,15 +3,13 @@ package com.example.sicenet
 import android.os.Bundle
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
-import androidx.compose.foundation.layout.Box
-import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.padding
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.*
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
-import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.unit.sp
 import androidx.lifecycle.viewmodel.compose.viewModel
@@ -36,20 +34,24 @@ class MainActivity : ComponentActivity() {
         val apiService = SicenetApiService.create()
         val db = SicenetDatabase.getDatabase(this)
         val repository = SicenetRepository(
-            apiService, 
-            db.alumnoDao(), 
-            db.materiaDao(), 
-            db.kardexDao(),
-            db.califUnidadDao(),
-            db.califFinalDao()
+            context = this,
+            apiService = apiService, 
+            alumnoDao = db.alumnoDao(), 
+            materiaDao = db.materiaDao(), 
+            kardexDao = db.kardexDao(),
+            califUnidadDao = db.califUnidadDao(),
+            califFinalDao = db.califFinalDao()
         )
+        
+        // Verificar si hay una sesión activa para decidir el startDestination
+        val startDestination = if (repository.getSessionCookie() != null) "profile" else "login"
         
         setContent {
             SicenetTheme {
                 val viewModel: SicenetViewModel = viewModel(
                     factory = SicenetViewModel.provideFactory(application, repository)
                 )
-                AppMain(viewModel)
+                AppMain(viewModel, startDestination)
             }
         }
     }
@@ -64,7 +66,7 @@ sealed class Screen(val route: String, val label: String, val icon: ImageVector)
 }
 
 @Composable
-fun AppMain(viewModel: SicenetViewModel) {
+fun AppMain(viewModel: SicenetViewModel, startDestination: String) {
     val navController = rememberNavController()
     val navBackStackEntry by navController.currentBackStackEntryAsState()
     val currentDestination = navBackStackEntry?.destination
@@ -74,7 +76,7 @@ fun AppMain(viewModel: SicenetViewModel) {
     Scaffold(
         bottomBar = {
             if (showBottomBar) {
-                NavigationBar(containerColor = MaterialTheme.colorScheme.surface) {
+                NavigationBar(containerColor = Color.White) {
                     val items = listOf(
                         Screen.Profile,
                         Screen.Carga,
@@ -85,7 +87,7 @@ fun AppMain(viewModel: SicenetViewModel) {
                     items.forEach { screen ->
                         NavigationBarItem(
                             icon = { Icon(screen.icon, contentDescription = null) },
-                            label = { Text(screen.label, fontSize = 10.sp) },
+                            label = { Text(screen.label, fontSize = 10.sp, color = Color.Gray) },
                             selected = currentDestination?.hierarchy?.any { it.route == screen.route } == true,
                             onClick = {
                                 navController.navigate(screen.route) {
@@ -98,7 +100,9 @@ fun AppMain(viewModel: SicenetViewModel) {
                             },
                             colors = NavigationBarItemDefaults.colors(
                                 selectedIconColor = SicenetGreen,
+                                unselectedIconColor = Color.Gray,
                                 selectedTextColor = SicenetGreen,
+                                unselectedTextColor = Color.Gray,
                                 indicatorColor = SicenetGreen.copy(alpha = 0.1f)
                             )
                         )
@@ -109,7 +113,7 @@ fun AppMain(viewModel: SicenetViewModel) {
     ) { innerPadding ->
         NavHost(
             navController = navController,
-            startDestination = "login",
+            startDestination = startDestination,
             modifier = Modifier.padding(innerPadding)
         ) {
             composable("login") {

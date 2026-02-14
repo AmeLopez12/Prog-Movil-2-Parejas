@@ -21,6 +21,7 @@ class SaveCalifFinalWorker(
         val apiService = SicenetApiService.create()
         val db = SicenetDatabase.getDatabase(applicationContext)
         val repository = SicenetRepository(
+            applicationContext,
             apiService, 
             db.alumnoDao(), 
             db.materiaDao(), 
@@ -31,8 +32,8 @@ class SaveCalifFinalWorker(
 
         return try {
             val type = object : TypeToken<List<CalifFinal>>() {}.type
-            val list: List<CalifFinal> = Gson().fromJson(json, type)
-            repository.saveCalifFinalLocal(list)
+            val data: List<CalifFinal> = Gson().fromJson(json, type)
+            repository.saveCalifFinalLocal(data)
             Result.success()
         } catch (e: Exception) {
             Result.failure()
