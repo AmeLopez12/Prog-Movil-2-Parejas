@@ -116,7 +116,7 @@ class SicenetViewModel(
         WorkManager.getInstance(getApplication()).beginUniqueWork("sync_carga", ExistingWorkPolicy.REPLACE, fetchRequest)
             .then(saveRequest).enqueue()
 
-        monitorWork(fetchRequest.id, "Carga")
+        monitorWork(saveRequest.id, "Carga")
     }
 
     fun syncKardex() {
@@ -135,7 +135,7 @@ class SicenetViewModel(
         WorkManager.getInstance(getApplication()).beginUniqueWork("sync_kardex", ExistingWorkPolicy.REPLACE, fetchRequest)
             .then(saveRequest).enqueue()
 
-        monitorWork(fetchRequest.id, "Kardex")
+        monitorWork(saveRequest.id, "Kardex")
     }
 
     fun syncCalifUnidades() {
@@ -148,7 +148,7 @@ class SicenetViewModel(
         WorkManager.getInstance(getApplication()).beginUniqueWork("sync_calif_unidades", ExistingWorkPolicy.REPLACE, fetchRequest)
             .then(saveRequest).enqueue()
 
-        monitorWork(fetchRequest.id, "Unidades")
+        monitorWork(saveRequest.id, "Unidades")
     }
     
     fun syncCalifFinal() {
@@ -167,20 +167,22 @@ class SicenetViewModel(
         WorkManager.getInstance(getApplication()).beginUniqueWork("sync_calif_final", ExistingWorkPolicy.REPLACE, fetchRequest)
             .then(saveRequest).enqueue()
 
-        monitorWork(fetchRequest.id, "Finales")
+        monitorWork(saveRequest.id, "Finales")
     }
 
     private fun monitorWork(id: UUID, tag: String) {
-        WorkManager.getInstance(getApplication()).getWorkInfoByIdLiveData(id).observeForever { workInfo ->
-            if (workInfo != null) {
-                when (workInfo.state) {
-                    WorkInfo.State.RUNNING -> syncStatus = "Sincronizando $tag..."
-                    WorkInfo.State.SUCCEEDED -> {
-                        syncStatus = "$tag actualizado"
-                        updateLastUpdateTexts()
+        viewModelScope.launch {
+            WorkManager.getInstance(getApplication()).getWorkInfoByIdFlow(id).collect { workInfo ->
+                if (workInfo != null) {
+                    when (workInfo.state) {
+                        WorkInfo.State.RUNNING -> syncStatus = "Sincronizando $tag..."
+                        WorkInfo.State.SUCCEEDED -> {
+                            syncStatus = "$tag actualizado"
+                            updateLastUpdateTexts()
+                        }
+                        WorkInfo.State.FAILED -> syncStatus = "Error sincronizando $tag"
+                        else -> {}
                     }
-                    WorkInfo.State.FAILED -> syncStatus = "Error sincronizando $tag"
-                    else -> {}
                 }
             }
         }

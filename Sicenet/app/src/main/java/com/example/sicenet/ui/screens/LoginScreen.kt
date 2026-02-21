@@ -51,7 +51,7 @@ fun LoginScreen(
                     .fillMaxWidth()
                     .background(SicenetGreen)
                     .windowInsetsPadding(WindowInsets.statusBars)
-                    .height(70.dp),
+                    .height(60.dp),
                 contentAlignment = Alignment.CenterStart
             ) {
                 Text(
