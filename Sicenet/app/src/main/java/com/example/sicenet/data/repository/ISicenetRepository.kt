@@ -4,7 +4,6 @@ import com.example.sicenet.data.model.*
 import kotlinx.coroutines.flow.Flow
 
 interface ISicenetRepository {
-    // API (Remoto)
     suspend fun login(matricula: String, contrasenia: String): Result<Login>
     suspend fun getProfileRemote(cookie: String? = null): Result<Alumno>
     suspend fun getCargaAcademicaRemote(cookie: String? = null): Result<List<Materia>>
@@ -12,11 +11,11 @@ interface ISicenetRepository {
     suspend fun getCalifUnidadesRemote(cookie: String? = null): Result<List<CalifUnidad>>
     suspend fun getCalifFinalRemote(cookie: String? = null, modEducativo: Int): Result<List<CalifFinal>>
     
-    // Cookie Management
+    // Manejo de cookies
     fun getSessionCookie(): String?
     fun setSessionCookie(cookie: String?)
 
-    // DB (Local)
+    // DB
     fun getAlumnoLocal(): Flow<Alumno?>
     suspend fun saveAlumnoLocal(alumno: Alumno)
     

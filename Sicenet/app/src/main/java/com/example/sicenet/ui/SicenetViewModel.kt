@@ -83,26 +83,45 @@ class SicenetViewModel(
     }
 
     fun login(matricula: String, contrasenia: String, onSuccess: () -> Unit) {
-        viewModelScope.launch {
-            isLoading = true
-            val result = repository.login(matricula, contrasenia)
-            isLoading = false
-            
-            if (result.isSuccess && result.getOrNull()?.acceso == true) {
-                loginState = LoginResult.Success
-                syncProfile()
-                onSuccess()
-            } else {
-                loginState = LoginResult.Error(result.getOrNull()?.mensaje ?: "Credenciales incorrectas")
-            }
-        }
-    }
+        val workManager = WorkManager.getInstance(getApplication())
 
-    private fun syncProfile() {
+        val inputData = workDataOf(
+            "matricula" to matricula,
+            "contrasenia" to contrasenia
+        )
+
+        val loginRequest = OneTimeWorkRequestBuilder<LoginWorker>()
+            .setInputData(inputData)
+            .build()
+
+        val saveProfileRequest = OneTimeWorkRequestBuilder<SaveProfileWorker>().build()
+
+        workManager.beginUniqueWork("login_sync", ExistingWorkPolicy.REPLACE, loginRequest)
+            .then(saveProfileRequest)
+            .enqueue()
+
         viewModelScope.launch {
-            val result = repository.getProfileRemote()
-            if (result.isSuccess) {
-                result.getOrNull()?.let { repository.saveAlumnoLocal(it) }
+            workManager.getWorkInfoByIdFlow(loginRequest.id).collect { workInfo ->
+                if (workInfo != null) {
+                    when (workInfo.state) {
+                        WorkInfo.State.RUNNING -> {
+                            isLoading = true
+                        }
+                        WorkInfo.State.SUCCEEDED -> {
+                            isLoading = false
+                            loginState = LoginResult.Success
+                            onSuccess()
+                        }
+                        WorkInfo.State.FAILED -> {
+                            isLoading = false
+                            val errorMessage = workInfo.outputData.getString("error_message")
+                            loginState = LoginResult.Error(errorMessage ?: "Credenciales incorrectas")
+                        }
+                        else -> {
+                            isLoading = false
+                        }
+                    }
+                }
             }
         }
     }
@@ -116,7 +135,7 @@ class SicenetViewModel(
         WorkManager.getInstance(getApplication()).beginUniqueWork("sync_carga", ExistingWorkPolicy.REPLACE, fetchRequest)
             .then(saveRequest).enqueue()
 
-        monitorWork(saveRequest.id, "Carga")
+        monitorSyncChain(fetchRequest.id, saveRequest.id, "Carga")
     }
 
     fun syncKardex() {
@@ -135,7 +154,7 @@ class SicenetViewModel(
         WorkManager.getInstance(getApplication()).beginUniqueWork("sync_kardex", ExistingWorkPolicy.REPLACE, fetchRequest)
             .then(saveRequest).enqueue()
 
-        monitorWork(saveRequest.id, "Kardex")
+        monitorSyncChain(fetchRequest.id, saveRequest.id, "Kardex")
     }
 
     fun syncCalifUnidades() {
@@ -148,7 +167,7 @@ class SicenetViewModel(
         WorkManager.getInstance(getApplication()).beginUniqueWork("sync_calif_unidades", ExistingWorkPolicy.REPLACE, fetchRequest)
             .then(saveRequest).enqueue()
 
-        monitorWork(saveRequest.id, "Unidades")
+        monitorSyncChain(fetchRequest.id, saveRequest.id, "Unidades")
     }
     
     fun syncCalifFinal() {
@@ -167,20 +186,32 @@ class SicenetViewModel(
         WorkManager.getInstance(getApplication()).beginUniqueWork("sync_calif_final", ExistingWorkPolicy.REPLACE, fetchRequest)
             .then(saveRequest).enqueue()
 
-        monitorWork(saveRequest.id, "Finales")
+        monitorSyncChain(fetchRequest.id, saveRequest.id, "Finales")
     }
 
-    private fun monitorWork(id: UUID, tag: String) {
+    private fun monitorSyncChain(fetchId: UUID, saveId: UUID, tag: String) {
+        val workManager = WorkManager.getInstance(getApplication())
         viewModelScope.launch {
-            WorkManager.getInstance(getApplication()).getWorkInfoByIdFlow(id).collect { workInfo ->
+            workManager.getWorkInfoByIdFlow(fetchId).collect { workInfo ->
                 if (workInfo != null) {
                     when (workInfo.state) {
                         WorkInfo.State.RUNNING -> syncStatus = "Sincronizando $tag..."
+                        WorkInfo.State.FAILED -> syncStatus = "Error de red al sincronizar $tag"
+                        else -> {}
+                    }
+                }
+            }
+        }
+        viewModelScope.launch {
+            workManager.getWorkInfoByIdFlow(saveId).collect { workInfo ->
+                if (workInfo != null) {
+                    when (workInfo.state) {
+                        WorkInfo.State.RUNNING -> syncStatus = "Guardando $tag..."
                         WorkInfo.State.SUCCEEDED -> {
                             syncStatus = "$tag actualizado"
                             updateLastUpdateTexts()
                         }
-                        WorkInfo.State.FAILED -> syncStatus = "Error sincronizando $tag"
+                        WorkInfo.State.FAILED -> syncStatus = "Error al guardar $tag"
                         else -> {}
                     }
                 }
