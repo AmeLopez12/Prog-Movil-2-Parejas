@@ -220,8 +220,10 @@ class SicenetViewModel(
     }
 
     fun logout() {
-        repository.logout()
-        loginState = null
+        viewModelScope.launch {
+            repository.logout()
+            loginState = null
+        }
     }
 
     sealed class LoginResult {

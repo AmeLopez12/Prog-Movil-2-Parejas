@@ -266,8 +266,12 @@ class SicenetRepository(
     }
     override suspend fun getLastCalifFinalUpdate(): Long? = califFinalDao.getLastUpdateTime()
 
-    override fun logout() {
+    override suspend fun logout() {
         setSessionCookie(null)
-        // Opcional: borrar DB al cerrar sesión
+        materiaDao.deleteAll()
+        kardexDao.deleteAll()
+        alumnoDao.deleteAlumno()
+        califUnidadDao.deleteAll()
+        califFinalDao.deleteAll()
     }
 }

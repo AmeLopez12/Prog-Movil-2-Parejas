@@ -1,6 +1,13 @@
 <?xml version="1.0" encoding="utf-8"?>
 <manifest xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:tools="http://schemas.android.com/tools">
+
+    <!-- Definición del permiso personalizado para proteger los datos -->
+    <permission
+        android:name="com.example.sicenet.READ_SICENET"
+        android:label="Leer datos de Sicenet"
+        android:protectionLevel="normal" />
+
     <uses-permission android:name="android.permission.INTERNET" />
 
     <application
@@ -13,6 +20,7 @@
         android:supportsRtl="true"
         android:networkSecurityConfig="@xml/network_security_config"
         android:theme="@style/Theme.Sicenet">
+
         <activity
             android:name=".MainActivity"
             android:exported="true"
@@ -20,10 +28,17 @@
             android:theme="@style/Theme.Sicenet">
             <intent-filter>
                 <action android:name="android.intent.action.MAIN" />
-
                 <category android:name="android.intent.category.LAUNCHER" />
             </intent-filter>
         </activity>
+
+        <!-- Registro del Content Provider -->
+        <provider
+            android:name=".data.local.SicenetProvider"
+            android:authorities="com.example.sicenet.provider"
+            android:exported="true"
+            android:readPermission="com.example.sicenet.READ_SICENET" />
+
     </application>
 
 </manifest>
