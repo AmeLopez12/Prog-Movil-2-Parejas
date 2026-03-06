@@ -72,12 +72,13 @@ class SicenetProvider : ContentProvider() {
         val db = database.openHelper.writableDatabase
         val tableName = getTableName(uri) ?: return null
 
+        // Uso de CONFLICT_REPLACE para manejar duplicados
         val id = db.insert(tableName, SQLiteDatabase.CONFLICT_REPLACE, values)
         
         if (id > 0) {
-            val itemUri = ContentUris.withAppendedId(uri, id)
-            context.contentResolver.notifyChange(itemUri, null)
-            return itemUri
+            // Notificar cambio en la URI base
+            context.contentResolver.notifyChange(uri, null)
+            return ContentUris.withAppendedId(uri, id)
         }
         return null
     }
@@ -89,6 +90,7 @@ class SicenetProvider : ContentProvider() {
 
         val count = db.delete(tableName, selection, selectionArgs)
         if (count > 0) {
+            // Notificar cambio en la URI base
             context.contentResolver.notifyChange(uri, null)
         }
         return count
@@ -101,8 +103,10 @@ class SicenetProvider : ContentProvider() {
         val db = database.openHelper.writableDatabase
         val tableName = getTableName(uri) ?: return 0
 
-        val count = db.update(tableName, SQLiteDatabase.CONFLICT_NONE, values, selection, selectionArgs)
+        // Uso de CONFLICT_REPLACE para manejar duplicados durante la actualización
+        val count = db.update(tableName, SQLiteDatabase.CONFLICT_REPLACE, values, selection, selectionArgs)
         if (count > 0) {
+            // Notificar cambio en la URI base
             context.contentResolver.notifyChange(uri, null)
         }
         return count
