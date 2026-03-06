@@ -42,6 +42,7 @@
             android:name=".data.local.SicenetProvider"
             android:authorities="com.example.sicenet.provider"
             android:exported="true"
+            android:enabled="true"
             android:readPermission="com.example.sicenet.READ_SICENET"
             android:writePermission="com.example.sicenet.WRITE_SICENET" />
 

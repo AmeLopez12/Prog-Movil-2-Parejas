@@ -1,10 +1,12 @@
 package com.example.sicenet.data.local
 
 import android.content.ContentProvider
+import android.content.ContentUris
 import android.content.ContentValues
 import android.content.Context
 import android.content.UriMatcher
 import android.database.Cursor
+import android.database.sqlite.SQLiteDatabase
 import android.net.Uri
 import androidx.sqlite.db.SupportSQLiteQueryBuilder
 
@@ -41,50 +43,83 @@ class SicenetProvider : ContentProvider() {
     ): Cursor? {
         val context = context ?: return null
         
-        // Verificación de seguridad adicional: ¿Hay una sesión activa?
+        // Verificación de seguridad: ¿Hay una sesión activa?
         val prefs = context.getSharedPreferences("sicenet_prefs", Context.MODE_PRIVATE)
         val cookie = prefs.getString("session_cookie", null)
         
         if (cookie == null) {
-            // Si no hay sesión, no permitimos el acceso aunque tenga el permiso de lectura
             return null
         }
 
         val db = database.openHelper.readableDatabase
-        val tableName = when (uriMatcher.match(uri)) {
-            MATERIAS -> "materias"
-            KARDEX -> "kardex"
-            else -> return null
-        }
+        val tableName = getTableName(uri) ?: return null
 
-        // Usamos SupportSQLiteQueryBuilder para construir la consulta dinámicamente
         val query = SupportSQLiteQueryBuilder.builder(tableName)
             .columns(projection)
             .selection(selection, selectionArgs)
             .orderBy(sortOrder)
             .create()
 
-        return db.query(query)
+        val cursor = db.query(query)
+        cursor.setNotificationUri(context.contentResolver, uri)
+        return cursor
     }
 
     override fun insert(uri: Uri, values: ContentValues?): Uri? {
-        // En este proyecto, los datos se sincronizan vía Workers. 
-        // El Provider es principalmente para lectura externa.
+        if (values == null) return null
+        
+        val context = context ?: return null
+        val db = database.openHelper.writableDatabase
+        val tableName = getTableName(uri) ?: return null
+
+        val id = db.insert(tableName, SQLiteDatabase.CONFLICT_REPLACE, values)
+        
+        if (id > 0) {
+            val itemUri = ContentUris.withAppendedId(uri, id)
+            context.contentResolver.notifyChange(itemUri, null)
+            return itemUri
+        }
         return null
     }
 
     override fun delete(uri: Uri, selection: String?, selectionArgs: Array<out String>?): Int {
-        return 0
+        val context = context ?: return 0
+        val db = database.openHelper.writableDatabase
+        val tableName = getTableName(uri) ?: return 0
+
+        val count = db.delete(tableName, selection, selectionArgs)
+        if (count > 0) {
+            context.contentResolver.notifyChange(uri, null)
+        }
+        return count
     }
 
     override fun update(uri: Uri, values: ContentValues?, selection: String?, selectionArgs: Array<out String>?): Int {
-        return 0
+        if (values == null) return 0
+
+        val context = context ?: return 0
+        val db = database.openHelper.writableDatabase
+        val tableName = getTableName(uri) ?: return 0
+
+        val count = db.update(tableName, SQLiteDatabase.CONFLICT_NONE, values, selection, selectionArgs)
+        if (count > 0) {
+            context.contentResolver.notifyChange(uri, null)
+        }
+        return count
     }
 
     override fun getType(uri: Uri): String? {
         return when (uriMatcher.match(uri)) {
             MATERIAS -> "vnd.android.cursor.dir/vnd.$AUTHORITY.materias"
             KARDEX -> "vnd.android.cursor.dir/vnd.$AUTHORITY.kardex"
+            else -> null
+        }
+    }
+
+    private fun getTableName(uri: Uri): String? {
+        return when (uriMatcher.match(uri)) {
+            MATERIAS -> "materias"
+            KARDEX -> "kardex"
             else -> null
         }
     }
