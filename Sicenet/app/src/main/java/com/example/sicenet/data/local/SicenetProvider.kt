@@ -1,11 +1,12 @@
 package com.example.sicenet.data.local
 
-import android.content.Context
 import android.content.ContentProvider
 import android.content.ContentValues
+import android.content.Context
 import android.content.UriMatcher
 import android.database.Cursor
 import android.net.Uri
+import androidx.sqlite.db.SupportSQLiteQueryBuilder
 
 class SicenetProvider : ContentProvider() {
 
@@ -40,29 +41,51 @@ class SicenetProvider : ContentProvider() {
     ): Cursor? {
         val context = context ?: return null
         
-        // Verificación de seguridad: ¿Hay una sesión activa?
+        // Verificación de seguridad adicional: ¿Hay una sesión activa?
         val prefs = context.getSharedPreferences("sicenet_prefs", Context.MODE_PRIVATE)
         val cookie = prefs.getString("session_cookie", null)
         
         if (cookie == null) {
-            // Si no hay cookie de sesión, no entregamos ningún dato al exterior
+            // Si no hay sesión, no permitimos el acceso aunque tenga el permiso de lectura
             return null
         }
 
         val db = database.openHelper.readableDatabase
+        val tableName = when (uriMatcher.match(uri)) {
+            MATERIAS -> "materias"
+            KARDEX -> "kardex"
+            else -> return null
+        }
+
+        // Usamos SupportSQLiteQueryBuilder para construir la consulta dinámicamente
+        val query = SupportSQLiteQueryBuilder.builder(tableName)
+            .columns(projection)
+            .selection(selection, selectionArgs)
+            .orderBy(sortOrder)
+            .create()
+
+        return db.query(query)
+    }
+
+    override fun insert(uri: Uri, values: ContentValues?): Uri? {
+        // En este proyecto, los datos se sincronizan vía Workers. 
+        // El Provider es principalmente para lectura externa.
+        return null
+    }
+
+    override fun delete(uri: Uri, selection: String?, selectionArgs: Array<out String>?): Int {
+        return 0
+    }
+
+    override fun update(uri: Uri, values: ContentValues?, selection: String?, selectionArgs: Array<out String>?): Int {
+        return 0
+    }
+
+    override fun getType(uri: Uri): String? {
         return when (uriMatcher.match(uri)) {
-            MATERIAS -> {
-                db.query("SELECT * FROM materias")
-            }
-            KARDEX -> {
-                db.query("SELECT * FROM kardex")
-            }
+            MATERIAS -> "vnd.android.cursor.dir/vnd.$AUTHORITY.materias"
+            KARDEX -> "vnd.android.cursor.dir/vnd.$AUTHORITY.kardex"
             else -> null
         }
     }
-
-    override fun getType(uri: Uri): String? = null
-    override fun insert(uri: Uri, values: ContentValues?): Uri? = null
-    override fun delete(uri: Uri, selection: String?, selectionArgs: Array<out String>?): Int = 0
-    override fun update(uri: Uri, values: ContentValues?, selection: String?, selectionArgs: Array<out String>?): Int = 0
 }
