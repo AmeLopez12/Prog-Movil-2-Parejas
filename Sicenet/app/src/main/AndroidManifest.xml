@@ -8,6 +8,7 @@
         android:label="Leer datos de Sicenet"
         android:protectionLevel="normal" />
 
+
     <permission
         android:name="com.example.sicenet.WRITE_SICENET"
         android:label="Escribir datos de Sicenet"
