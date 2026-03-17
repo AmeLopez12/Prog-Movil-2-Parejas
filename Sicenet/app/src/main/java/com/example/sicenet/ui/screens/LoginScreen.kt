@@ -23,14 +23,8 @@ fun LoginScreen(
 ) {
     var matricula by remember { mutableStateOf("") }
     var contrasenia by remember { mutableStateOf("") }
-    val snackbarHostState = remember { SnackbarHostState() }
 
     val loginState = viewModel.loginState
-    LaunchedEffect(loginState) {
-        if (loginState is SicenetViewModel.LoginResult.Error) {
-            snackbarHostState.showSnackbar(loginState.message)
-        }
-    }
 
     val textFieldColors = OutlinedTextFieldDefaults.colors(
         focusedTextColor = Color.Black,
@@ -71,11 +65,41 @@ fun LoginScreen(
                 .background(Color.White),
             horizontalAlignment = Alignment.CenterHorizontally
         ) {
+            Spacer(modifier = Modifier.height(32.dp))
+
             // Formulario
             Column(
                 modifier = Modifier.padding(horizontal = 32.dp),
                 horizontalAlignment = Alignment.CenterHorizontally
             ) {
+                // Caja de error amigable
+                if (loginState is SicenetViewModel.LoginResult.Error) {
+                    val friendlyMessage = when {
+                        loginState.message.contains("incorrecta", ignoreCase = true) ||
+                        loginState.message.contains("Matrícula", ignoreCase = true) -> "Matrícula o contraseña incorrecta"
+                        loginState.message.contains("servidor", ignoreCase = true) || 
+                        loginState.message.contains("HTTP", ignoreCase = true) ||
+                        loginState.message.contains("timeout", ignoreCase = true) -> "Servidor caído o error de red"
+                        else -> "Error: No se pudo conectar con el servidor"
+                    }
+
+                    Surface(
+                        color = Color(0xFFFFEBEE), // Rojo muy claro
+                        shape = RoundedCornerShape(8.dp),
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(bottom = 16.dp)
+                    ) {
+                        Text(
+                            text = friendlyMessage,
+                            color = Color(0xFFD32F2F), // Rojo material
+                            fontSize = 14.sp,
+                            fontWeight = FontWeight.Medium,
+                            modifier = Modifier.padding(12.dp)
+                        )
+                    }
+                }
+
                 OutlinedTextField(
                     value = matricula,
                     onValueChange = { matricula = it },
