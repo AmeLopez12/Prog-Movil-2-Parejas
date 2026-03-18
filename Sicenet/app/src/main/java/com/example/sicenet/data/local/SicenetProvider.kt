@@ -13,14 +13,18 @@ import androidx.sqlite.db.SupportSQLiteQueryBuilder
 class SicenetProvider : ContentProvider() {
 
     companion object {
+        //identificador
         const val AUTHORITY = "com.example.sicenet.provider"
         
+        //identificar las peticiones a las tablas
         const val MATERIAS = 1
         const val KARDEX = 2
 
+        // URIs base para acceder a materias y kardex
         val URI_MATERIAS: Uri = Uri.parse("content://$AUTHORITY/materias")
         val URI_KARDEX: Uri = Uri.parse("content://$AUTHORITY/kardex")
 
+        //registra las rutas permitidas y les asigna un codigo
         private val uriMatcher = UriMatcher(UriMatcher.NO_MATCH).apply {
             addURI(AUTHORITY, "materias", MATERIAS)
             addURI(AUTHORITY, "kardex", KARDEX)
@@ -29,11 +33,13 @@ class SicenetProvider : ContentProvider() {
 
     private lateinit var database: SicenetDatabase
 
+    //se ejecuta al iniciar el proveedor e inicializa la base de datos Room
     override fun onCreate(): Boolean {
         database = SicenetDatabase.getDatabase(context!!)
         return true
     }
 
+    //consultas a la base de datos
     override fun query(
         uri: Uri,
         projection: Array<out String>?,
@@ -43,7 +49,7 @@ class SicenetProvider : ContentProvider() {
     ): Cursor? {
         val context = context ?: return null
         
-        // Verificación de seguridad: ¿Hay una sesión activa?
+        //verifica de seguridad
         val prefs = context.getSharedPreferences("sicenet_prefs", Context.MODE_PRIVATE)
         val cookie = prefs.getString("session_cookie", null)
         
@@ -61,10 +67,12 @@ class SicenetProvider : ContentProvider() {
             .create()
 
         val cursor = db.query(query)
+        //notifica al cursor sobre cambios en la URI para actualizaciones en tiempo real
         cursor.setNotificationUri(context.contentResolver, uri)
         return cursor
     }
 
+    //inserta datos en la tabla especificada por la URI
     override fun insert(uri: Uri, values: ContentValues?): Uri? {
         if (values == null) return null
         
@@ -72,17 +80,18 @@ class SicenetProvider : ContentProvider() {
         val db = database.openHelper.writableDatabase
         val tableName = getTableName(uri) ?: return null
 
-        // Uso de CONFLICT_REPLACE para manejar duplicados
+        //el registro ya existe, lo reemplaza
         val id = db.insert(tableName, SQLiteDatabase.CONFLICT_REPLACE, values)
         
         if (id > 0) {
-            // Notificar cambio en la URI base
+            // Avisa que los datos cambiaron
             context.contentResolver.notifyChange(uri, null)
             return ContentUris.withAppendedId(uri, id)
         }
         return null
     }
 
+    // Borra registros de la base de datos
     override fun delete(uri: Uri, selection: String?, selectionArgs: Array<out String>?): Int {
         val context = context ?: return 0
         val db = database.openHelper.writableDatabase
@@ -90,12 +99,13 @@ class SicenetProvider : ContentProvider() {
 
         val count = db.delete(tableName, selection, selectionArgs)
         if (count > 0) {
-            // Notificar cambio en la URI base
+            // Notifica el borrado de datos
             context.contentResolver.notifyChange(uri, null)
         }
         return count
     }
 
+    // Actualiza registros existentes
     override fun update(uri: Uri, values: ContentValues?, selection: String?, selectionArgs: Array<out String>?): Int {
         if (values == null) return 0
 
@@ -103,15 +113,16 @@ class SicenetProvider : ContentProvider() {
         val db = database.openHelper.writableDatabase
         val tableName = getTableName(uri) ?: return 0
 
-        // Uso de CONFLICT_REPLACE para manejar duplicados durante la actualización
+        // Actualiza y maneja conflictos reemplazando la informacion
         val count = db.update(tableName, SQLiteDatabase.CONFLICT_REPLACE, values, selection, selectionArgs)
         if (count > 0) {
-            // Notificar cambio en la URI base
+            //actualizacion de datos
             context.contentResolver.notifyChange(uri, null)
         }
         return count
     }
 
+    //devuelve el tipo de dato que maneja la URI
     override fun getType(uri: Uri): String? {
         return when (uriMatcher.match(uri)) {
             MATERIAS -> "vnd.android.cursor.dir/vnd.$AUTHORITY.materias"
@@ -120,6 +131,7 @@ class SicenetProvider : ContentProvider() {
         }
     }
 
+    //funcion para convertir la URI en el nombre real de la tabla en la base de datos
     private fun getTableName(uri: Uri): String? {
         return when (uriMatcher.match(uri)) {
             MATERIAS -> "materias"
